@@ -16,11 +16,13 @@ import QtQuick
 // bstr is intentionally excluded: QML/JS has no native byte literal, so
 // echoBytes / bytesEvent aren't expressible here (the C++-backend variant
 // test_fullapi_ui covers them).
-Item {
+Rectangle {
     id: root
     objectName: "fullApiUiQmlRoot"
     width: 800
     height: 480
+    // The view owns its fixed palette; host surfaces may be light or dark.
+    color: "#1a1a22"
 
     readonly property string target: "test_fullapi_cpp"
     property string status: ""

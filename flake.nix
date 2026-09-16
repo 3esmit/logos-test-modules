@@ -558,7 +558,23 @@
             ls -la $out/
           '';
         in {
+          qml-contrast = pkgs.runCommand "logos-test-modules-qml-contrast" {
+            nativeBuildInputs = [ pkgs.qt6.qtdeclarative ];
+          } ''
+            export QT_QPA_PLATFORM=offscreen
+            export QT_QUICK_BACKEND=software
+            export XDG_CACHE_HOME="$TMPDIR/cache"
+            export QML2_IMPORT_PATH="${pkgs.qt6.qtdeclarative}/${pkgs.qt6.qtbase.qtQmlPrefix}"
+            export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}"
+            export FONTCONFIG_FILE="${pkgs.makeFontsConf { fontDirectories = [ pkgs.dejavu_fonts ]; }}"
+            mkdir -p $out "$XDG_CACHE_HOME"
+            qmltestrunner -input ${self}/tests/qml \
+              -o "$out/results.xml,junitxml" -o -,txt
+          '';
+
           tests = pkgs.runCommand "logos-test-modules-tests" {
+            # Keep rendered UI coverage in the existing integration CI gate.
+            qmlContrast = self.checks.${system}.qml-contrast;
             nativeBuildInputs = [
               logoscorePkg
               pkgs.jq

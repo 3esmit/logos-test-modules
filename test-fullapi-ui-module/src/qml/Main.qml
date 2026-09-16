@@ -4,11 +4,13 @@ import QtQuick
 // backend; Text labels bind the backend's synced PROPs. A headless UI doctest
 // clicks the buttons and asserts on the status/event text. The call* functions
 // are also exposed for call_method-style driving.
-Item {
+Rectangle {
     id: root
     objectName: "fullApiUiRoot"
     width: 800
     height: 480
+    // The view owns its fixed palette; host surfaces may be light or dark.
+    color: "#1a1a22"
 
     readonly property var backend: logos.module("test_fullapi_ui")
 
