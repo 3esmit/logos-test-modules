@@ -245,6 +245,14 @@
         configFile = ./test-unload-module-cpp/metadata.json;
       };
 
+      # The rust-first twin of unloadCpp. A rust-first module reaches the hook
+      # through logos_rust_sdk::AboutToUnload + logos_install!, which no other
+      # fixture exercises; see its lib.rs.
+      unloadRust = mkModule {
+        src = ./test-unload-module-rust;
+        configFile = ./test-unload-module-rust/metadata.json;
+      };
+
       contextCpp = mkModule {
         src = ./test-context-module-cpp;
         configFile = ./test-context-module-cpp/metadata.json;
@@ -411,6 +419,7 @@
         test_uiqml_probe = uiqmlProbe.packages.${system};
         test_context_module_cpp = contextCpp.packages.${system};
         test_unload_module_cpp = unloadCpp.packages.${system};
+        test_unload_module_rust = unloadRust.packages.${system};
         test_interface_module_cpp = interfaceCpp.packages.${system};
         test_optional_module_cpp = optionalCpp.packages.${system};
         test_extlib_module = extlib.packages.${system};
@@ -448,6 +457,7 @@
           test_uiqml_probe = uiqmlProbe.packages.${system}.default;
           test_context_module_cpp = contextCpp.packages.${system}.default;
           test_unload_module_cpp = unloadCpp.packages.${system}.default;
+          test_unload_module_rust = unloadRust.packages.${system}.default;
           test_interface_module_cpp = interfaceCpp.packages.${system}.default;
           test_optional_module_cpp = optionalCpp.packages.${system}.default;
           test_extlib_module = extlib.packages.${system}.default;
@@ -484,6 +494,7 @@
           optionalCppLgx = optionalCpp.packages.${system}.lgx;
           contextCppInstall = contextCpp.packages.${system}.install;
           unloadCppInstall = unloadCpp.packages.${system}.install;
+          unloadRustInstall = unloadRust.packages.${system}.install;
           extlibInstall = extlib.packages.${system}.install;
           ipcNewApiInstall = ipc-new-api.packages.${system}.install;
           fullapiCppInstall = fullapiCpp.packages.${system}.install;
@@ -540,6 +551,12 @@
           unloadModulesDir = pkgs.runCommand "test-modules-unload-dir" {} ''
             mkdir -p $out
             cp -rn "${unloadCppInstall}/modules/." "$out/"
+            ls -la $out/
+          '';
+
+          unloadRustModulesDir = pkgs.runCommand "test-modules-unload-rust-dir" {} ''
+            mkdir -p $out
+            cp -rn "${unloadRustInstall}/modules/." "$out/"
             ls -la $out/
           '';
 
@@ -620,7 +637,14 @@
             bash ${./tests/run_unload_tests.sh} \
               ${logoscorePkg}/bin/logoscore \
               ${unloadModulesDir} \
+              test_unload_module_cpp \
               2>&1 | tee $out/unload-results.txt
+
+            bash ${./tests/run_unload_tests.sh} \
+              ${logoscorePkg}/bin/logoscore \
+              ${unloadRustModulesDir} \
+              test_unload_module_rust \
+              2>&1 | tee $out/unload-results-rust.txt
           '';
 
           # Full-API chain integration: exercises the fullapi provider + proxy
@@ -658,18 +682,19 @@
 
             # --- QML-only module ---
             echo "Testing QML-only module build..."
+            # mkLogosQmlModule installs ui_qml output under lib/
             defaultPkg="${qmlOnly.packages.${system}.default}"
-            test -f "$defaultPkg/Main.qml"
-            echo "PASS: QML-only default has Main.qml"
+            test -f "$defaultPkg/lib/Main.qml"
+            echo "PASS: QML-only default has lib/Main.qml"
 
-            test -f "$defaultPkg/metadata.json"
-            echo "PASS: QML-only default has metadata.json"
+            test -f "$defaultPkg/lib/metadata.json"
+            echo "PASS: QML-only default has lib/metadata.json"
 
-            type=$(jq -r '.type' "$defaultPkg/metadata.json")
+            type=$(jq -r '.type' "$defaultPkg/lib/metadata.json")
             test "$type" = "ui_qml"
             echo "PASS: QML-only type is ui_qml"
 
-            view=$(jq -r '.view' "$defaultPkg/metadata.json")
+            view=$(jq -r '.view' "$defaultPkg/lib/metadata.json")
             test "$view" = "Main.qml"
             echo "PASS: QML-only view is Main.qml"
 
@@ -1005,7 +1030,10 @@
             in
             pkgs.runCommand "logos-thread-safety-tests" {
               nativeBuildInputs = [ testBin logosLiblogosPkg ]
-                ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.qt6.qtbase ];
+                ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.qt6.qtbase ]
+                # codesign (+ the codesign_allocate it spawns), for DummyModuleGenerator's
+                # ad-hoc re-signing of patched plugins.
+                ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [ pkgs.darwin.sigtool pkgs.cctools ];
             } ''
               export QT_QPA_PLATFORM=offscreen
               export QT_FORCE_STDERR_LOGGING=1
