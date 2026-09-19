@@ -268,6 +268,14 @@
       "verified": "6 of 6 xpass \u2014 void/method_return on both providers across all three consumers. Nothing else moved: pass 560, xfail 10 (M4-residual 6 + M3 4), no fail.",
       "note": "TWO SITES, and the second was found only by re-measuring. logos-plugin-qt#28 fixed the multi-concurrency path; the single path returned early via `kVoidMethods.contains(methodName)` before reaching it. With #28 in the builder \u2014 verified root-to-leaf through the lock AND by content \u2014 these six cells were still xfail. The fix was in the build and the cells had not moved, which is what located the second site. Reading the diff would not have.",
       "cost_of_retiring_early": "18 of these 24 cells flipped one bump earlier, and the obvious move was to retire the whole entry then. Had that happened, the six doVoid cells would have been deleted while still broken, and the glue would have gone on reporting refusals as successful calls with nothing watching."
+    },
+    {
+      "ids": [
+        "B-arity-overflow-lidl-builtin"
+      ],
+      "fixed_by": "logos-plugin-qt#42 (e46678a), carried by logos-module-builder#252 (8007924). The generated C++ and Rust dispatches already refused the call; the glue answered first.",
+      "what": "lidl(\"junk\") answered null with status ok. The Qt host glue answers the lidl() built-in before the module's dispatch runs, and its own argument check returned an empty QVariant.",
+      "verified": "On this relock, with the entry still registered, 6 of 6 cells xpass (both providers, all three consumers), answering {\"__error__\": \"invalid_args\"}, and nothing else moves: pass 566, xfail 10, xpass 6. With the entry retired: pass 572, xfail 10, exit 0."
     }
   ],
   "unmeasurable": [
