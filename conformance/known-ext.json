@@ -152,6 +152,14 @@
       "fixed_by": "logos-cpp-sdk 692af75 (#150) and logos-rust-sdk d3fe4b4 (#50), carried here by logos-module-builder c021491 (#216).",
       "what": "An EXTRA argument was dropped and the call succeeded. The generated dispatches guarded `args.size() < minArgs` and nothing bounded the other direction.",
       "verified": "12 of 12 cells xpass on the relock \u2014 both cases, both providers, all three consumers, `got {\"__error__\": \"invalid_args\"}`. This table's zero-parameter case rides `whoAmI`, which returns tstr, and it flipped with the rest."
+    },
+    {
+      "ids": [
+        "B-arity-overflow-lidl-builtin"
+      ],
+      "fixed_by": "logos-plugin-qt#42 (e46678a), carried by logos-module-builder#252 (8007924). The generated C++ and Rust dispatches already refused the call; the glue answered first.",
+      "what": "lidl(\"junk\") answered null with status ok. The Qt host glue answers the lidl() built-in before the module's dispatch runs, and its own argument check returned an empty QVariant.",
+      "verified": "On this relock, with the entry still registered, 6 of 6 cells xpass (both providers, all three consumers), answering {\"__error__\": \"invalid_args\"}, and nothing else moves: pass 267, xfail 3, xpass 6. With the entry retired: pass 273, xfail 3, exit 0."
     }
   ],
   "unmeasurable": []
